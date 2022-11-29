@@ -190,11 +190,6 @@ class MainWindow(QtWidgets.QMainWindow):
                         annot.set_visible(False)
                         fig.canvas.draw_idle()
 
-    # def update_annot(self, line, ind):
-    #     x, y = line.get_data()
-    #     print(line.axis.figure)
-
-
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
