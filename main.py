@@ -3,6 +3,7 @@ from os import path, walk
 from tkinter.filedialog import askopenfilename
 
 import matplotlib
+import numpy as np
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QHBoxLayout
 
 matplotlib.use('Qt5Agg')
@@ -114,27 +115,61 @@ class MainWindow(QtWidgets.QMainWindow):
         k = []
 
         # Grab residual data from the log
+        # cnt_smooth = 0
+        cnt_time = 0
         try:
+            ind_iter = []
             for i in range(len(log_data)):
-                if 'SmoothSolver' in log_data[i]:
-                    if 'Time = ' in log_data[i - 2]:
-                        time.append(int(log_data[i - 2].split()[2]))
-                        Ux.append(float(log_data[i].split()[7].split(',')[0]))
-                        Uy.append(float(log_data[i + 1].split()[7].split(',')[0]))
-                        Uz.append(float(log_data[i + 2].split()[7].split(',')[0]))
-                        p.append(float(log_data[i + 6].split()[7].split(',')[0]))
-                        if 'Solving for omega' in log_data[i + 13]:
-                            omega_row = i + 13
-                        else:
-                            omega_row = i + 14
-                        omega.append(float(log_data[omega_row].split()[7].split(',')[0]))
-                        if 'Solving for k' in log_data[i + 14]:
-                            k_row = i + 14
-                        else:
-                            k_row = i + 15
-                        k.append(float(log_data[k_row].split()[7].split(',')[0]))
+                # if 'SmoothSolver' in log_data[i]:
+                #     cnt_smooth += 1
+                #     if 'Time = ' in log_data[i - 2]:
+                #         cnt_time += 1
+                #         time.append(int(log_data[i - 2].split()[2]))
+                #         ind_iter.append(i)
+                if 'Time = ' in log_data[i] and 'Time' in log_data[i][:4]:
+                    cnt_time += 1
+                    time.append(int(log_data[i].split()[2]))
+                    ind_iter.append(i)
+
+            print('Time actual length: %d' % len(time))
+            print('ind_iter length: %d' % len(ind_iter))
+
+            max_diff = np.max(np.diff(ind_iter))
+            ind_iter.append(ind_iter[-1]+max_diff)
+            print('ind_iter new length: %d' % len(ind_iter))
+            for j in range(len(ind_iter)-1):
+                text_block = log_data[ind_iter[j]:ind_iter[j+1]]
+                flag = 0
+                for line in text_block:
+                    if 'Ux' in line and 'Solver' in line:
+                        Ux.append(float(line.split()[7].split(',')[0]))
+                        flag += 1
+                        if flag > 1:
+                            print(ind_iter[j])
+                            print(log_data[ind_iter[j]])
+                            print(line)
+                    elif 'Uy' in line and 'Solver' in line:
+                        Uy.append(float(line.split()[7].split(',')[0]))
+                    elif 'Uz' in line and 'Solver' in line:
+                        Uz.append(float(line.split()[7].split(',')[0]))
+                    elif 'omega' in line and 'Solver' in line:
+                        omega.append(float(line.split()[7].split(',')[0]))
+                    elif 'k, Initial' in line and 'Solver' in line:
+                        k.append(float(line.split()[7].split(',')[0]))
+                    elif 'GAMG' in line:
+                        p.append(float(line.split()[7].split(',')[0]))
+            print('j: %d' % j)
         except:
+            print('Failed to read residuals from log file')
+            print('Failed on line %d' % i)
+            print(log_data[i])
             return
+
+        print('log_data length: %d' % len(log_data))
+        # print('Smooth length: %d' % cnt_smooth)
+        print('Time length: %d' % cnt_time)
+        print('Ux length: %d' % len(Ux))
+        print('k length: %d' % len(k))
 
         if len(time) > len(k):
             time = time[:len(k)]
